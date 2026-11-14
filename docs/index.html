@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M5 Retail Demand Forecasting: Interactive Research Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>M5 Demand Forecasting</h2>
+      <p>ES 678 Course Project | IIT Gandhinagar</p>
+      <p style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Arpit Metrey (Roll: 26210175)</p>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item">
+        <a href="#overview" class="nav-link active" data-section="overview">
+          <span class="nav-num">01</span> Research Overview
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#explorer" class="nav-link" data-section="explorer">
+          <span class="nav-num">02</span> Dataset Explorer
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#eda" class="nav-link" data-section="eda">
+          <span class="nav-num">03</span> Exploratory Data Analysis
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#feature-lab" class="nav-link" data-section="feature-lab">
+          <span class="nav-num">04</span> Feature Engineering Lab
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#forecasting-lab" class="nav-link" data-section="forecasting-lab">
+          <span class="nav-num">05</span> Forecasting Laboratory
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#evaluation" class="nav-link" data-section="evaluation">
+          <span class="nav-num">06</span> Evaluation & Interpretation
+        </a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+
+    <!-- 01 — RESEARCH OVERVIEW -->
+    <section id="overview" class="section-panel active">
+      <header class="page-header">
+        <h1>01 — Research Overview</h1>
+        <p>Feature-Based Inventory Demand Forecasting on M5 Walmart Data: What History, Calendar, and Price Add</p>
+      </header>
+
+      <div class="grid-4">
+        <div class="card kpi-card">
+          <div class="kpi-title">Stratified Sample</div>
+          <div class="kpi-value">1,000</div>
+          <div class="kpi-subtext">Item-Store Series (1.52M Rows)</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-title">Best Test MAE</div>
+          <div class="kpi-value">1.1143</div>
+          <div class="kpi-subtext">HistGradientBoosting (GBT)</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-title">Best Test RMSE</div>
+          <div class="kpi-value">1.9478</div>
+          <div class="kpi-subtext">Boosted Trees vs 2.130 Baseline</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-title">Stat Significance</div>
+          <div class="kpi-value">p < 0.05</div>
+          <div class="kpi-subtext">95% CI [-0.0639, -0.0213] (Bootstrap)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Research Question & Motivation</div>
+        <p>Retailers must decide inventory replenishment levels four weeks before demand is observed. The central empirical question is: <strong>How much do historical sales, calendar information, and selling price features improve 28-day-ahead retail demand forecasts over simple baselines?</strong></p>
+        <br>
+        <p>Using a stratified subset of 1,000 item-store series (1,525,319 observations) from Walmart stores across California, Texas, and Wisconsin, we evaluate direct 28-day forecasting methods under chronological validation splits.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Headline Findings</div>
+        <ul style="margin-left: 1.25rem; font-size: 0.925rem;">
+          <li><strong>Lagged Sales Dominate:</strong> Nearly all predictive lift comes from historical sales lags. Adding calendar variables gives a small secondary boost, while price features add virtually zero incremental gain once historical sales are present.</li>
+          <li><strong>ML Models Beat Baselines:</strong> Both Ridge regression and Gradient Boosted Trees (GBT) outperform the strongest baseline (4-week same-weekday mean) by 3.6% in MAE and ~8% in RMSE on held-out test data.</li>
+          <li><strong>Statistical Tie:</strong> Boosted Trees and Ridge regression are statistically tied (MAE difference -0.0011, 95% bootstrap confidence interval [-0.0105, 0.0083]).</li>
+          <li><strong>Zero-Inflation Mismatch:</strong> ML models trained under squared-error loss beat baselines on fast-moving products and positive sales days, but lose to simple baselines on zero-sales days and slow-moving items (<0.25 units/day).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 02 — DATASET EXPLORER -->
+    <section id="explorer" class="section-panel">
+      <header class="page-header">
+        <h1>02 — Dataset Explorer</h1>
+        <p>M5 Walmart Data Structure, Stratified Sampling, and Pre-launch Filtering</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Dataset Characteristics</div>
+          <table class="data-table">
+            <tr><th>Attribute</th><th>Full M5 Dataset</th><th>Stratified Project Subset</th></tr>
+            <tr><td>Total Series</td><td>30,490 item-stores</td><td><strong>1,000 item-stores</strong></td></tr>
+            <tr><td>Stores Covered</td><td>10 stores (CA, TX, WI)</td><td>10 stores (100 per store)</td></tr>
+            <tr><td>Categories</td><td>FOODS, HOBBIES, HOUSEHOLD</td><td>47% FOODS, 19% HOBBIES, 34% HOUSEHOLD</td></tr>
+            <tr><td>Time Horizon</td><td>1,941 days (2011-2016)</td><td>1,941 days (Days 1 to 1941)</td></tr>
+            <tr><td>Pre-launch Dropped</td><td>N/A</td><td>21.4% (Dropped pre-price rows)</td></tr>
+            <tr><td>Final Scored Rows</td><td>~59 Million</td><td><strong>1,525,319 clean rows</strong></td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Data Preprocessing & Quality Checks</div>
+          <ul style="margin-left: 1.25rem; font-size: 0.875rem;">
+            <li><strong>Pre-launch Filtering:</strong> Every product series contains consecutive leading zeros prior to its first price record. These 21.4% pre-launch rows were removed so model fitting reflects active product availability.</li>
+            <li><strong>Zero Negatives:</strong> Unit sales contain no negative values.</li>
+            <li><strong>Missing Events:</strong> Missing event names in `calendar.csv` were originally parsed as empty strings rather than nulls, creating constant indicator columns; this was identified and remediated prior to final model runs.</li>
+            <li><strong>Chronological Data Leakage Shielding:</strong> Transformations (standardization means/variances, volume tiers) were fit strictly on training rows ($d \le 1885$).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 — EXPLORATORY DATA ANALYSIS -->
+    <section id="eda" class="section-panel">
+      <header class="page-header">
+        <h1>03 — Exploratory Data Analysis</h1>
+        <p>Sales Sparsity, Zero-Inflation, and Temporal Demand Variations</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Sales Distribution & Sparsity</div>
+          <canvas id="chartEDA" height="200"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Sales Volume Tiers (Last 91 Training Days)</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Volume Tier</th><th>Series Count</th><th>Sales Share</th><th>Mean Sales/Day</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>< 0.25 units/day</strong></td><td>251 series</td><td>3.85%</td><td>0.12 units</td></tr>
+              <tr><td><strong>0.25 - 1.0 units/day</strong></td><td>373 series</td><td>13.89%</td><td>0.54 units</td></tr>
+              <tr><td><strong>1.0 - 3.0 units/day</strong></td><td>238 series</td><td>27.07%</td><td>1.78 units</td></tr>
+              <tr><td><strong>>= 3.0 units/day</strong></td><td>138 series</td><td><strong>55.20%</strong></td><td>5.82 units</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;">Key Takeaway: Over 55% of total sales volume is concentrated in just 13.8% of product series (fast sellers).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 — FEATURE ENGINEERING LAB -->
+    <section id="feature-lab" class="section-panel">
+      <header class="page-header">
+        <h1>04 — Feature Engineering Laboratory</h1>
+        <p>Constructing Direct 28-Day Features Without Iterative Leakage</p>
+      </header>
+
+      <div class="card">
+        <div class="card-title">Direct 28-Day Forecasting Formulation</div>
+        <p>To forecast a 28-day window ($t = T+1, \dots, T+28$) without recursive error propagation, all features for target day $t$ use only observations available at or before origin day $T$. Thus, lag $\ell$ is defined as $\ell \ge 28$.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Feature Groups (47 Features Total)</div>
+          <ul style="margin-left: 1.25rem; font-size: 0.875rem;">
+            <li><strong>History Features (6):</strong> Lags $y_{i, t-28}, y_{i, t-35}, y_{i, t-42}, y_{i, t-56}$, plus 7-day and 28-day rolling means ending at $t-28$.</li>
+            <li><strong>Calendar Features (20+):</strong> Day-of-week indicators, month indicators, SNAP food assistance state flags, and event indicators.</li>
+            <li><strong>Price Features (2):</strong> Weekly selling price and selling price ratio relative to 28 days prior ($P_t / P_{t-28}$).</li>
+            <li><strong>Static Categorical (13):</strong> One-hot encodings for Store ID and Category ID (FOODS, HOBBIES, HOUSEHOLD).</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Preventing Data Leakage</div>
+          <pre><code># Direct 28-Day Feature Calculation Rule
+def build_direct_features(df, origin_day):
+    # Lags must be at least 28 days back from target day t
+    df['lag_28'] = df.groupby('id')['sales'].shift(28)
+    df['lag_35'] = df.groupby('id')['sales'].shift(35)
+    df['rolling_mean_7'] = df.groupby('id')['lag_28'].transform(
+        lambda x: x.rolling(7).mean()
+    )
+    # Standardization fit strictly on training set
+    scaler.fit(df[df['day'] <= 1885][feature_cols])
+    return df</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 — FORECASTING LABORATORY -->
+    <section id="forecasting-lab" class="section-panel">
+      <header class="page-header">
+        <h1>05 — Forecasting Laboratory</h1>
+        <p>Interactive 28-Day What-If Demand Forecast Simulator</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Scenario Parameters</div>
+          <div class="control-group">
+            <label for="simVol">Product Sales Volume Class</label>
+            <select id="simVol">
+              <option value="0.15">Slow-moving (<0.25 units/day)</option>
+              <option value="0.60">Moderate-moving (0.25 - 1.0 units/day)</option>
+              <option value="1.80">Medium-moving (1.0 - 3.0 units/day)</option>
+              <option value="5.50" selected>Fast-moving (>=3.0 units/day)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="simPrice">Selling Price Change Ratio</label>
+            <input type="range" id="simPrice" min="0.7" max="1.3" step="0.05" value="1.0">
+            <span id="simPriceVal" style="font-size: 0.85rem; font-weight: 600;">1.00x</span>
+          </div>
+          <div class="control-group">
+            <label><input type="checkbox" id="simSnap"> SNAP Assistance Day Active</label>
+          </div>
+          <div class="control-group">
+            <label><input type="checkbox" id="simEvent"> Special Event Day Active</label>
+          </div>
+          <div id="simRiskAlert" class="sim-alert info">
+            <strong>Optimal Deployment Domain:</strong> On moderate to high volume items, Ridge and GBT outperform baselines by reducing peak RMSE and capturing promotional lift.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">28-Day Direct Forecast Trajectory</div>
+          <canvas id="chartSimulator" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 — EVALUATION & INTERPRETATION -->
+    <section id="evaluation" class="section-panel">
+      <header class="page-header">
+        <h1>06 — Evaluation & Interpretation</h1>
+        <p>Model Benchmarks, Multi-Window Validation, and Feature Ablation Evidence</p>
+      </header>
+
+      <div class="card">
+        <div class="card-title">Overall Test Set Benchmark (Days 1914 - 1941)</div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Model / Method</th>
+                <th>Validation MAE</th>
+                <th>Validation RMSE</th>
+                <th>Test MAE</th>
+                <th>Test RMSE</th>
+                <th>Prediction Bias</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Zero Forecast</td><td>1.604</td><td>3.877</td><td>1.556</td><td>3.539</td><td>-1.556</td></tr>
+              <tr><td>Seasonal Naive (Lag 7)</td><td>1.357</td><td>2.835</td><td>1.292</td><td>2.466</td><td>+0.012</td></tr>
+              <tr><td>4-Week Weekday Mean Baseline</td><td>1.137</td><td>2.162</td><td>1.157</td><td>2.130</td><td>+0.048</td></tr>
+              <tr class="highlight-row"><td>Ridge Regression (All Features)</td><td>1.114</td><td>2.109</td><td>1.115</td><td>1.966</td><td><strong>+0.002</strong></td></tr>
+              <tr class="highlight-row"><td>HistGradientBoosting (GBT)</td><td><strong>1.106</strong></td><td><strong>2.062</strong></td><td><strong>1.114</strong></td><td><strong>1.948</strong></td><td>+0.006</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Model Comparison Chart</div>
+          <canvas id="chartBenchmark" height="180"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Volume Tier Error Breakdown</div>
+          <canvas id="chartVolume" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Feature-Group Ablation Study (Test MAE / RMSE)</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Added Feature Group</th><th>Ridge MAE (RMSE)</th><th>GBT MAE (RMSE)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Static Features Only</td><td>1.771 (3.097)</td><td>1.766 (3.091)</td></tr>
+              <tr><td>+ History</td><td>1.144 (1.975)</td><td>1.136 (1.981)</td></tr>
+              <tr><td>+ Calendar</td><td>1.743 (3.090)</td><td>1.732 (3.080)</td></tr>
+              <tr><td>+ Price</td><td>1.741 (3.045)</td><td>1.413 (2.434)</td></tr>
+              <tr><td>+ History + Calendar</td><td>1.117 (1.967)</td><td>1.113 (1.959)</td></tr>
+              <tr><td>+ History + Price</td><td>1.142 (1.974)</td><td>1.132 (1.980)</td></tr>
+              <tr class="highlight-row"><td>All Features Combined</td><td><strong>1.115 (1.966)</strong></td><td><strong>1.114 (1.948)</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Multi-Window Robust Evaluation</div>
+          <canvas id="chartRobust" height="180"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

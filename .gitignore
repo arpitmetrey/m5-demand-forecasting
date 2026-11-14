@@ -1,0 +1,14 @@
+.venv/
+data/
+__pycache__/
+.ipynb_checkpoints/
+*.parquet
+
+*.zip
+code_10nov.txt
+forecasting.pdf
+es678_project_template.tex
+.vscode/
+*.aux
+*.log
+*.out
