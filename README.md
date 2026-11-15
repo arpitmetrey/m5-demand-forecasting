@@ -23,12 +23,22 @@ How much do historical sales, calendar information and selling price improve 28-
 ## Repository layout
 
 - `src/` scripts (see run order below)
-- `results/` CSV outputs (metrics, ablations, error analysis, bootstrap) and `results/figures/`
+- `results/` derived outputs (metrics, ablations, error analysis, bootstrap, test-period predictions) and `results/figures/`; the raw M5 data is not included
 - `paper/` final 4-page paper (PDF) and its LaTeX source
 - `docs/` static interactive website (open `docs/index.html`, or use the GitHub Pages link below)
 - `requirements.txt` minimal packages; `requirements-lock.txt` full pip freeze of the author's environment
 
 Interactive website (GitHub Pages): https://arpitmetrey.github.io/m5-demand-forecasting/
+
+## Data access
+
+The raw data is not redistributed here. It comes from the Kaggle competition "M5 Forecasting - Accuracy": https://www.kaggle.com/competitions/m5-forecasting-accuracy . A free Kaggle account is needed, and the competition rules must be accepted before the files can be downloaded. Either download the files from the competition's Data tab, or use the Kaggle command line tool:
+
+```
+kaggle competitions download -c m5-forecasting-accuracy
+```
+
+Unzip the files into a folder named `data/` in the project root. The scripts use `calendar.csv`, `sell_prices.csv`, `sales_train_validation.csv` and `sales_train_evaluation.csv`.
 
 ## Reproduce
 
@@ -44,7 +54,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-2. Download the M5 Forecasting - Accuracy data from Kaggle and put these files in a folder named `data/` in the project root (raw data is not included in the repository): `calendar.csv`, `sell_prices.csv`, `sales_train_validation.csv`, `sales_train_evaluation.csv`.
+2. Put the M5 files in `data/` as described under Data access.
 
 3. Run from the project root, in this order:
 
@@ -61,3 +71,25 @@ All outputs are written to `results/`. The scripts `ridge_ablation.py`, `gbt_abl
 
 - Chronological split: train d <= 1885, validation d1886-d1913 (tuning), test d1914-d1941 (evaluated once after refitting on d <= 1913).
 - All history features use lags of at least 28 days, so there is no leakage across the forecast horizon.
+- The repository contains no private data, credentials or API keys.
+
+## AI-use disclosure
+
+The topic, research question and project proposal are my own. I used Claude (Anthropic) throughout the project as the only AI tool, for: design suggestions, writing and debugging the Python scripts, flagging problems in outputs, drafting the text of the paper and of this README, and building the interactive website in `docs/`. I ran every script locally. No other AI tools were used.
+
+## Citations and external material
+
+Data
+- S. Makridakis, E. Spiliotis and V. Assimakopoulos. M5 accuracy competition: Results, findings, and conclusions. International Journal of Forecasting, 38(4):1346-1364, 2022. Data: Kaggle, "M5 Forecasting - Accuracy" (link above).
+
+Methods
+- R. J. Hyndman and G. Athanasopoulos. Forecasting: Principles and Practice, 3rd ed. OTexts, 2021 (seasonal naive baseline).
+- A. E. Hoerl and R. W. Kennard. Ridge regression: Biased estimation for nonorthogonal problems. Technometrics, 12(1):55-67, 1970.
+- J. H. Friedman. Greedy function approximation: A gradient boosting machine. Annals of Statistics, 29(5):1189-1232, 2001.
+- B. Efron. Bootstrap methods: Another look at the jackknife. Annals of Statistics, 7(1):1-26, 1979.
+
+Software and libraries
+- F. Pedregosa et al. Scikit-learn: Machine learning in Python. Journal of Machine Learning Research, 12:2825-2830, 2011 (Ridge, HistGradientBoostingRegressor, StandardScaler).
+- NumPy, pandas, matplotlib and pyarrow (versions above).
+- Chart.js (https://www.chartjs.org/, MIT licence), loaded from the jsDelivr CDN by `docs/index.html` for the website charts.
+- The paper uses the course-supplied ES 678 LaTeX template and style file (`paper/latex_source/neurips_2026.sty`).
