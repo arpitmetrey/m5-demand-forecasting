@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   initCharts();
-  initSimulator();
+  initExplorer();
 });
 
 // Navigation Handling
@@ -115,103 +115,138 @@ function initCharts() {
     });
   }
 
-  // Chart 4: Multi-Window Robust Summary
+  // Chart 4: Test MAE by forecast week (weekly blocks of the 28-day horizon)
   const ctxRobust = document.getElementById('chartRobust')?.getContext('2d');
   if (ctxRobust) {
     new Chart(ctxRobust, {
       type: 'bar',
       data: {
-        labels: ['Recent 28-day Mean', 'Ridge Regression', 'Price-aware Ridge', 'Random Forest', 'Historical Mean', 'Seasonal Naive'],
-        datasets: [{
-          label: 'Mean MAE across 3 Validation Windows',
-          data: [1.1404, 1.1485, 1.1801, 1.1825, 1.1941, 1.4055],
-          backgroundColor: ['#059669', '#2563eb', '#d97706', '#dc2626', '#64748b', '#94a3b8']
-        }]
+        labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-28'],
+        datasets: [
+          { label: '4-Wk Weekday Mean', data: [1.1010, 1.1853, 1.1890, 1.1515], backgroundColor: '#94a3b8' },
+          { label: 'Ridge Regression', data: [1.0709, 1.1541, 1.1532, 1.0835], backgroundColor: '#2563eb' },
+          { label: 'Boosted Trees (GBT)', data: [1.0645, 1.1509, 1.1431, 1.0989], backgroundColor: '#dc2626' }
+        ]
       },
       options: {
         responsive: true,
+        scales: { y: { beginAtZero: false, title: { display: true, text: 'Test MAE' } } },
         plugins: {
-          legend: { display: false },
-          title: { display: true, text: 'Multi-Window Robust Evaluation (Mean MAE over d_1802-d_1913)' }
+          legend: { position: 'top' },
+          title: { display: true, text: 'Test MAE by Forecast Week (no growth with horizon)' }
         }
       }
     });
   }
 }
 
-// Interactive What-If Forecast Simulator
-function initSimulator() {
-  const volSelect = document.getElementById('simVol');
-  const snapCheck = document.getElementById('simSnap');
-  const priceSlider = document.getElementById('simPrice');
-  const priceVal = document.getElementById('simPriceVal');
-  const eventCheck = document.getElementById('simEvent');
+// Results Explorer: shows measured test results only (no model runs in the browser)
+const ABLATION = {
+  // key = feature groups added to static encodings: H = history, C = calendar, P = price
+  '':    { ridge: [1.771, 3.097], gbt: [1.766, 3.091] },
+  'H':   { ridge: [1.144, 1.975], gbt: [1.136, 1.981] },
+  'C':   { ridge: [1.743, 3.090], gbt: [1.732, 3.080] },
+  'P':   { ridge: [1.741, 3.045], gbt: [1.413, 2.434] },
+  'HC':  { ridge: [1.117, 1.967], gbt: [1.113, 1.959] },
+  'HP':  { ridge: [1.142, 1.974], gbt: [1.132, 1.980] },
+  'HCP': { ridge: [1.115, 1.966], gbt: [1.114, 1.948] }
+  // 'CP' (calendar + price without history) was not run
+};
+const ZERO_MAE = 1.556;
+const MEAN4_MAE = 1.157;
 
-  if (!volSelect) return;
+const TIERS = [
+  { name: '<0.25 units/day', mean4: 0.318, ridge: 0.361, gbt: 0.377 },
+  { name: '0.25-1 units/day', mean4: 0.706, ridge: 0.716, gbt: 0.718 },
+  { name: '1-3 units/day', mean4: 1.467, ridge: 1.382, gbt: 1.376 },
+  { name: '>=3 units/day', mean4: 3.365, ridge: 3.108, gbt: 3.075 }
+];
 
-  const ctxSim = document.getElementById('chartSimulator')?.getContext('2d');
-  let simChart;
+function initExplorer() {
+  const hist = document.getElementById('exHistory');
+  const cal = document.getElementById('exCalendar');
+  const price = document.getElementById('exPrice');
+  const tierSelect = document.getElementById('exTier');
+  if (!hist || !cal || !price || !tierSelect) return;
 
-  function updateSimulation() {
-    const vol = parseFloat(volSelect.value);
-    const snap = snapCheck.checked ? 1.08 : 1.0;
-    const priceRatio = parseFloat(priceSlider.value);
-    const isEvent = eventCheck.checked ? 1.15 : 1.0;
-    priceVal.textContent = priceRatio.toFixed(2) + 'x';
+  const ctxAbl = document.getElementById('chartAblation')?.getContext('2d');
+  const ctxTier = document.getElementById('chartTier')?.getContext('2d');
+  const ablText = document.getElementById('exAblationText');
+  const tierAlert = document.getElementById('exTierAlert');
+  let ablChart;
+  let tierChart;
 
-    // Generate 28-day simulated trajectory
-    const days = Array.from({ length: 28 }, (_, i) => `Day ${i + 1}`);
-    const actual = [];
-    const predBaseline = [];
-    const predRidge = [];
-    const predGBT = [];
+  function pct(value, ref) {
+    const d = (value - ref) / ref * 100;
+    return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+  }
 
-    for (let d = 1; d <= 28; d++) {
-      const weekdayMult = (d % 7 === 6 || d % 7 === 0) ? 1.3 : 0.9;
-      const noise = (Math.random() - 0.5) * 0.4;
-      const baseDemand = vol * weekdayMult * snap * isEvent;
-      
-      actual.push(Math.max(0, baseDemand + noise));
-      predBaseline.push(baseDemand * 1.05); // slightly over-predicts
-      predRidge.push(baseDemand * (1 - (priceRatio - 1) * 0.1));
-      predGBT.push(baseDemand * (1 - (priceRatio - 1) * 0.12) + (isEvent > 1 ? 0.2 : 0));
+  function updateAblation() {
+    const key = (hist.checked ? 'H' : '') + (cal.checked ? 'C' : '') + (price.checked ? 'P' : '');
+    const row = ABLATION[key];
+    if (!row) {
+      ablText.className = 'sim-alert warning';
+      ablText.innerHTML = '<strong>Not evaluated:</strong> calendar + price without history was not run in this project. Pick another combination.';
+      if (ablChart) { ablChart.destroy(); ablChart = null; }
+      return;
     }
+    const label = key === '' ? 'static encodings only' : 'static + ' + key.split('').map(c => ({ H: 'history', C: 'calendar', P: 'price' }[c])).join(' + ');
+    const beats = row.gbt[0] < MEAN4_MAE && row.ridge[0] < MEAN4_MAE;
+    ablText.className = 'sim-alert ' + (beats ? 'info' : 'warning');
+    ablText.innerHTML = '<strong>' + label.charAt(0).toUpperCase() + label.slice(1) + ':</strong> Ridge MAE ' + row.ridge[0].toFixed(3) + ' (RMSE ' + row.ridge[1].toFixed(3) + '), GBT MAE ' + row.gbt[0].toFixed(3) + ' (RMSE ' + row.gbt[1].toFixed(3) + '). Versus the 4-week weekday mean (MAE 1.157): Ridge ' + pct(row.ridge[0], MEAN4_MAE) + ', GBT ' + pct(row.gbt[0], MEAN4_MAE) + '.';
 
-    if (simChart) simChart.destroy();
-
-    simChart = new Chart(ctxSim, {
-      type: 'line',
+    if (ablChart) ablChart.destroy();
+    ablChart = new Chart(ctxAbl, {
+      type: 'bar',
       data: {
-        labels: days,
-        datasets: [
-          { label: 'Simulated Actual Demand', data: actual, borderColor: '#0f172a', borderDash: [5, 5], fill: false },
-          { label: '4-Wk Weekday Mean Baseline', data: predBaseline, borderColor: '#94a3b8', fill: false },
-          { label: 'Ridge Forecast', data: predRidge, borderColor: '#2563eb', fill: false },
-          { label: 'Boosted Trees (GBT) Forecast', data: predGBT, borderColor: '#dc2626', fill: false }
-        ]
+        labels: ['Zero forecast', '4-wk weekday mean', 'Ridge', 'Boosted trees'],
+        datasets: [{
+          label: 'Test MAE',
+          data: [ZERO_MAE, MEAN4_MAE, row.ridge[0], row.gbt[0]],
+          backgroundColor: ['#cbd5e1', '#94a3b8', '#2563eb', '#dc2626']
+        }]
       },
       options: {
         responsive: true,
-        plugins: {
-          title: { display: true, text: 'Live 28-Day Direct Demand Trajectory' }
-        }
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Test MAE (lower is better)' } } },
+        plugins: { legend: { display: false } }
       }
     });
-
-    // Update risk alert text
-    const alertBox = document.getElementById('simRiskAlert');
-    if (vol < 0.25) {
-      alertBox.className = 'sim-alert warning';
-      alertBox.innerHTML = '<strong>Deployment Risk Warning:</strong> On slow-moving items (<0.25 units/day), learned ML models suffer from zero-inflation loss mismatch. The baseline achieves lower MAE here.';
-    } else {
-      alertBox.className = 'sim-alert info';
-      alertBox.innerHTML = '<strong>Optimal Deployment Domain:</strong> On moderate to high volume items, Ridge and GBT outperform baselines by reducing peak RMSE and capturing promotional lift.';
-    }
   }
 
-  [volSelect, snapCheck, priceSlider, eventCheck].forEach(el => {
-    el.addEventListener('input', updateSimulation);
-  });
+  function updateTier() {
+    const t = TIERS[parseInt(tierSelect.value, 10)];
+    const modelsBeat = t.ridge < t.mean4 && t.gbt < t.mean4;
+    const tierName = t.name.replace('<', '&lt;').replace('>', '&gt;');
+    tierAlert.className = 'sim-alert ' + (modelsBeat ? 'info' : 'warning');
+    if (modelsBeat) {
+      tierAlert.innerHTML = '<strong>' + tierName + ':</strong> both learned models have lower MAE than the 4-week weekday mean (Ridge ' + t.ridge.toFixed(3) + ', GBT ' + t.gbt.toFixed(3) + ' vs ' + t.mean4.toFixed(3) + ').';
+    } else {
+      tierAlert.innerHTML = '<strong>' + tierName + ':</strong> the 4-week weekday mean has the lowest MAE (' + t.mean4.toFixed(3) + ' vs Ridge ' + t.ridge.toFixed(3) + ', GBT ' + t.gbt.toFixed(3) + '). Squared-error models predict means, while MAE favours medians on intermittent demand.';
+    }
 
-  updateSimulation();
+    if (tierChart) tierChart.destroy();
+    tierChart = new Chart(ctxTier, {
+      type: 'bar',
+      data: {
+        labels: ['4-wk weekday mean', 'Ridge', 'Boosted trees'],
+        datasets: [{
+          label: 'Test MAE',
+          data: [t.mean4, t.ridge, t.gbt],
+          backgroundColor: ['#94a3b8', '#2563eb', '#dc2626']
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Test MAE (lower is better)' } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  [hist, cal, price].forEach(el => el.addEventListener('input', updateAblation));
+  tierSelect.addEventListener('input', updateTier);
+
+  updateAblation();
+  updateTier();
 }
